@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ani Follow · Analizador de Instagram</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --surface2: #1c1c28;
+    --border: #2a2a3d;
+    --accent: #e1306c;
+    --accent2: #f77737;
+    --accent3: #833ab4;
+    --text: #f0f0f8;
+    --muted: #7b7b9a;
+    --success: #4ade80;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    top: -30%; left: -20%;
+    width: 70%; height: 70%;
+    background: radial-gradient(ellipse, rgba(131,58,180,0.13) 0%, transparent 65%);
+    pointer-events: none; z-index: 0;
+  }
+  body::after {
+    content: '';
+    position: fixed;
+    bottom: -20%; right: -10%;
+    width: 60%; height: 60%;
+    background: radial-gradient(ellipse, rgba(225,48,108,0.1) 0%, transparent 65%);
+    pointer-events: none; z-index: 0;
+  }
+
+  .container {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 52px 24px;
+    position: relative; z-index: 1;
+  }
+
+  /* ── Header ── */
+  header { text-align: center; margin-bottom: 52px; animation: fadeDown 0.7s ease both; }
+
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(135deg, var(--accent3), var(--accent), var(--accent2));
+    padding: 2px;
+    border-radius: 18px;
+    margin-bottom: 28px;
+  }
+  .brand-inner {
+    background: var(--bg);
+    border-radius: 16px;
+    padding: 10px 22px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .brand-icon {
+    width: 28px; height: 28px;
+    background: linear-gradient(135deg, var(--accent3), var(--accent), var(--accent2));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .brand-icon svg { width: 16px; height: 16px; fill: white; }
+  .brand-name {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.15rem;
+    letter-spacing: -0.01em;
+    background: linear-gradient(90deg, var(--accent3), var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(1.8rem, 4.5vw, 3rem);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    margin-bottom: 14px;
+  }
+  h1 em {
+    font-style: normal;
+    background: linear-gradient(90deg, var(--accent3), var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 1rem;
+    font-weight: 300;
+    max-width: 500px;
+    margin: 0 auto;
+    line-height: 1.65;
+  }
+
+  /* ── Guide ── */
+  .guide {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 26px 30px;
+    margin-bottom: 28px;
+    animation: fadeUp 0.7s 0.1s ease both;
+  }
+  .guide-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+  .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
+  .step { display: flex; gap: 11px; align-items: flex-start; }
+  .step-num {
+    width: 26px; height: 26px; border-radius: 7px;
+    background: linear-gradient(135deg, var(--accent3), var(--accent));
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif; font-weight: 800; font-size: 11px;
+    flex-shrink: 0; margin-top: 2px;
+  }
+  .step-text { font-size: 0.85rem; color: var(--muted); line-height: 1.5; }
+  .step-text strong { color: var(--text); font-weight: 500; }
+
+  /* ── Upload ── */
+  .upload-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+    margin-bottom: 20px;
+    animation: fadeUp 0.7s 0.2s ease both;
+  }
+  @media (max-width: 580px) { .upload-grid { grid-template-columns: 1fr; } }
+
+  .upload-card {
+    background: var(--surface);
+    border: 1.5px dashed var(--border);
+    border-radius: 18px;
+    padding: 30px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    position: relative; overflow: hidden;
+  }
+  .upload-card:hover { border-color: var(--accent); background: var(--surface2); transform: translateY(-2px); }
+  .upload-card.loaded { border-style: solid; border-color: var(--success); background: rgba(74,222,128,0.05); }
+  .upload-card.drag-over { border-color: var(--accent2); background: rgba(247,119,55,0.07); transform: scale(1.02); }
+  .upload-card input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+  .upload-icon {
+    width: 46px; height: 46px; border-radius: 13px;
+    margin: 0 auto 13px;
+    display: flex; align-items: center; justify-content: center; font-size: 22px;
+  }
+  .upload-icon.a { background: rgba(131,58,180,0.18); }
+  .upload-icon.b { background: rgba(225,48,108,0.18); }
+
+  .upload-card h3 { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.97rem; margin-bottom: 5px; }
+  .upload-card p { font-size: 0.78rem; color: var(--muted); line-height: 1.45; }
+  .file-name { margin-top: 10px; font-size: 0.76rem; color: var(--success); font-weight: 500; }
+
+  /* ── Button ── */
+  .btn-analyze {
+    width: 100%; padding: 15px;
+    background: linear-gradient(135deg, var(--accent3), var(--accent), var(--accent2));
+    border: none; border-radius: 14px;
+    color: white; font-family: 'Syne', sans-serif;
+    font-weight: 700; font-size: 1rem; letter-spacing: 0.04em;
+    cursor: pointer; transition: all 0.25s ease;
+    margin-bottom: 36px;
+    animation: fadeUp 0.7s 0.3s ease both;
+  }
+  .btn-analyze:hover { transform: translateY(-2px); filter: brightness(1.12); box-shadow: 0 8px 32px rgba(225,48,108,0.3); }
+  .btn-analyze:active { transform: translateY(0); }
+  .btn-analyze:disabled { opacity: 0.38; cursor: not-allowed; transform: none; filter: none; box-shadow: none; }
+
+  /* ── Stats ── */
+  .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; }
+  @media (max-width: 480px) { .stats-row { grid-template-columns: 1fr; } }
+
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 18px; text-align: center;
+  }
+  .stat-num { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 2.1rem; line-height: 1; margin-bottom: 5px; }
+  .stat-num.c1 { color: var(--accent3); }
+  .stat-num.c2 { color: var(--accent); }
+  .stat-num.c3 { color: var(--accent2); }
+  .stat-label { font-size: 0.76rem; color: var(--muted); }
+
+  /* ── Results ── */
+  .results-section { animation: fadeUp 0.5s ease both; }
+
+  .results-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px; flex-wrap: wrap; gap: 10px;
+  }
+  .results-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.1rem; }
+  .results-title span { color: var(--accent); }
+
+  .search-bar {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 9px 14px;
+    color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 0.87rem;
+    outline: none; width: 220px; transition: border-color 0.2s;
+  }
+  .search-bar:focus { border-color: var(--accent3); }
+  .search-bar::placeholder { color: var(--muted); }
+
+  .user-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .user-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    padding: 14px 18px;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    transition: border-color 0.2s, background 0.2s;
+    animation: fadeUp 0.3s ease both;
+  }
+  .user-item:hover { border-color: var(--border); background: var(--surface2); }
+  .user-item.unfollowed { opacity: 0.4; }
+
+  .user-left { display: flex; align-items: center; gap: 12px; }
+
+  .avatar {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent3), var(--accent));
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif; font-weight: 800; font-size: 13px;
+    color: white; flex-shrink: 0;
+  }
+
+  .user-name { font-weight: 500; font-size: 0.93rem; }
+  .user-link { font-size: 0.76rem; color: var(--muted); text-decoration: none; }
+  .user-link:hover { color: var(--accent); }
+
+  .btn-unfollow {
+    padding: 7px 16px;
+    background: transparent;
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    color: var(--accent);
+    font-family: 'Syne', sans-serif;
+    font-weight: 700; font-size: 0.78rem;
+    cursor: pointer; transition: all 0.2s; white-space: nowrap;
+  }
+  .btn-unfollow:hover { background: var(--accent); color: white; }
+  .btn-unfollow.done { border-color: var(--muted); color: var(--muted); cursor: default; }
+  .btn-unfollow.done:hover { background: transparent; color: var(--muted); }
+
+  .empty-state {
+    text-align: center; padding: 52px 20px;
+    color: var(--muted); font-size: 0.92rem;
+  }
+  .empty-state .icon { font-size: 2.5rem; margin-bottom: 12px; }
+
+  /* ── Error banner ── */
+  .error-banner {
+    background: rgba(225,48,108,0.1); border: 1px solid rgba(225,48,108,0.3);
+    border-radius: 12px; padding: 14px 18px;
+    color: var(--accent); font-size: 0.87rem;
+    margin-bottom: 20px; display: none;
+  }
+
+  /* ── Animations ── */
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-inner">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+          </svg>
+        </div>
+        <span class="brand-name">Ani Follow</span>
+      </div>
+    </div>
+    <h1>Descubre quién <em>no te sigue</em><br>de vuelta en Instagram</h1>
+    <p class="subtitle">Sube tus archivos de datos de Instagram y analiza en segundos quién no te corresponde el follow.</p>
+  </header>
+
+  <!-- Guide -->
+  <div class="guide">
+    <div class="guide-label">📋 Cómo obtener tus archivos</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-text">Ve a <strong>Instagram → Configuración → Tu actividad → Descarga tu información</strong></div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-text">Selecciona <strong>formato JSON</strong> y solicita la descarga</div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-text">Cuando llegue el correo, descarga el ZIP y busca la carpeta <strong>connections/followers_and_following/</strong></div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-text">Sube aquí <strong>following.json</strong> y <strong>followers_1.json</strong></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div class="error-banner" id="errorBanner"></div>
+
+  <!-- Upload -->
+  <div class="upload-grid">
+    <label class="upload-card" id="cardFollowing">
+      <input type="file" accept=".json" id="fileFollowing">
+      <div class="upload-icon a">➡️</div>
+      <h3>Siguiendo</h3>
+      <p>Archivo <strong>following.json</strong><br>Personas que tú sigues</p>
+      <div class="file-name hidden" id="nameFollowing"></div>
+    </label>
+
+    <label class="upload-card" id="cardFollowers">
+      <input type="file" accept=".json" id="fileFollowers">
+      <div class="upload-icon b">❤️</div>
+      <h3>Seguidores</h3>
+      <p>Archivo <strong>followers_1.json</strong><br>Personas que te siguen</p>
+      <div class="file-name hidden" id="nameFollowers"></div>
+    </label>
+  </div>
+
+  <!-- Analyze -->
+  <button class="btn-analyze" id="btnAnalyze" disabled>
+    ✦ Analizar con Ani Follow
+  </button>
+
+  <!-- Results -->
+  <div id="resultsSection" class="hidden">
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-num c1" id="statFollowing">0</div>
+        <div class="stat-label">Siguiendo</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num c2" id="statFollowers">0</div>
+        <div class="stat-label">Seguidores</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num c3" id="statGhost">0</div>
+        <div class="stat-label">No te siguen de vuelta</div>
+      </div>
+    </div>
+
+    <div class="results-header">
+      <div class="results-title">No te siguen de vuelta <span id="countLabel"></span></div>
+      <input class="search-bar" id="searchInput" type="text" placeholder="🔍 Buscar usuario...">
+    </div>
+
+    <div class="user-list" id="userList"></div>
+  </div>
+
+</div>
+
+<script>
+  let followingData = null;
+  let followersData = null;
+  let nonFollowers = [];
+
+  const fileFollowing = document.getElementById('fileFollowing');
+  const fileFollowers = document.getElementById('fileFollowers');
+  const cardFollowing = document.getElementById('cardFollowing');
+  const cardFollowers = document.getElementById('cardFollowers');
+  const nameFollowing = document.getElementById('nameFollowing');
+  const nameFollowers = document.getElementById('nameFollowers');
+  const btnAnalyze   = document.getElementById('btnAnalyze');
+  const errorBanner  = document.getElementById('errorBanner');
+
+  function showError(msg) {
+    errorBanner.textContent = msg;
+    errorBanner.style.display = 'block';
+    setTimeout(() => errorBanner.style.display = 'none', 5000);
+  }
+
+  function tryEnable() {
+    btnAnalyze.disabled = !(followingData && followersData);
+  }
+
+  function readJSON(file) {
+    return new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = e => { try { res(JSON.parse(e.target.result)); } catch { rej(new Error('JSON inválido')); } };
+      r.onerror = () => rej(new Error('No se pudo leer el archivo'));
+      r.readAsText(file);
+    });
+  }
+
+  /* Extract usernames from either following or followers JSON structure */
+  function extractUsernames(data) {
+    const names = new Set();
+
+    // following.json: { relationships_following: [ {string_list_data: [{value: '...'}]} ] }
+    if (data.relationships_following) {
+      data.relationships_following.forEach(item => {
+        item.string_list_data?.forEach(d => { if (d.value) names.add(d.value); });
+      });
+      return names;
+    }
+
+    // followers_1.json: [ {string_list_data: [{value: '...'}]} ]
+    if (Array.isArray(data)) {
+      data.forEach(item => {
+        item.string_list_data?.forEach(d => { if (d.value) names.add(d.value); });
+      });
+      return names;
+    }
+
+    // Fallback: sometimes it's wrapped differently
+    const keys = Object.keys(data);
+    if (keys.length > 0) {
+      const arr = data[keys[0]];
+      if (Array.isArray(arr)) {
+        arr.forEach(item => {
+          item.string_list_data?.forEach(d => { if (d.value) names.add(d.value); });
+        });
+      }
+    }
+    return names;
+  }
+
+  fileFollowing.addEventListener('change', async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      followingData = await readJSON(file);
+      nameFollowing.textContent = '✓ ' + file.name;
+      nameFollowing.classList.remove('hidden');
+      cardFollowing.classList.add('loaded');
+    } catch (err) {
+      showError('Error en following.json: ' + err.message);
+    }
+    tryEnable();
+  });
+
+  fileFollowers.addEventListener('change', async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      followersData = await readJSON(file);
+      nameFollowers.textContent = '✓ ' + file.name;
+      nameFollowers.classList.remove('hidden');
+      cardFollowers.classList.add('loaded');
+    } catch (err) {
+      showError('Error en followers.json: ' + err.message);
+    }
+    tryEnable();
+  });
+
+  // Drag & drop
+  [cardFollowing, cardFollowers].forEach((card, i) => {
+    card.addEventListener('dragover', e => { e.preventDefault(); card.classList.add('drag-over'); });
+    card.addEventListener('dragleave', () => card.classList.remove('drag-over'));
+    card.addEventListener('drop', async e => {
+      e.preventDefault();
+      card.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (!file) return;
+      try {
+        const data = await readJSON(file);
+        if (i === 0) {
+          followingData = data;
+          nameFollowing.textContent = '✓ ' + file.name;
+          nameFollowing.classList.remove('hidden');
+          card.classList.add('loaded');
+        } else {
+          followersData = data;
+          nameFollowers.textContent = '✓ ' + file.name;
+          nameFollowers.classList.remove('hidden');
+          card.classList.add('loaded');
+        }
+      } catch (err) {
+        showError('Error leyendo archivo: ' + err.message);
+      }
+      tryEnable();
+    });
+  });
+
+  btnAnalyze.addEventListener('click', () => {
+    const following = extractUsernames(followingData);
+    const followers = extractUsernames(followersData);
+
+    if (following.size === 0) { showError('No se encontraron usuarios en following.json. Verifica el archivo.'); return; }
+    if (followers.size === 0) { showError('No se encontraron usuarios en followers_1.json. Verifica el archivo.'); return; }
+
+    nonFollowers = [...following].filter(u => !followers.has(u)).sort((a, b) => a.localeCompare(b));
+
+    document.getElementById('statFollowing').textContent = following.size;
+    document.getElementById('statFollowers').textContent = followers.size;
+    document.getElementById('statGhost').textContent = nonFollowers.length;
+
+    document.getElementById('resultsSection').classList.remove('hidden');
+    renderList(nonFollowers);
+  });
+
+  function renderList(users) {
+    const list = document.getElementById('userList');
+    document.getElementById('countLabel').textContent = `(${users.length})`;
+    list.innerHTML = '';
+
+    if (users.length === 0) {
+      list.innerHTML = `<div class="empty-state"><div class="icon">🎉</div>¡Todos los que sigues te siguen de vuelta!</div>`;
+      return;
+    }
+
+    users.forEach((username, i) => {
+      const initials = username.slice(0, 2).toUpperCase();
+      const item = document.createElement('div');
+      item.className = 'user-item';
+      item.style.animationDelay = Math.min(i * 0.03, 0.5) + 's';
+      item.innerHTML = `
+        <div class="user-left">
+          <div class="avatar">${initials}</div>
+          <div>
+            <div class="user-name">@${username}</div>
+            <a class="user-link" href="https://instagram.com/${username}" target="_blank" rel="noopener">Ver perfil en Instagram ↗</a>
+          </div>
+        </div>
+        <button class="btn-unfollow" data-user="${username}">Dejar de seguir</button>
+      `;
+      list.appendChild(item);
+    });
+
+    list.querySelectorAll('.btn-unfollow').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const username = btn.dataset.user;
+        const url = `https://instagram.com/${username}`;
+        window.open(url, '_blank');
+        btn.textContent = 'Perfil abierto ✓';
+        btn.classList.add('done');
+        btn.closest('.user-item').classList.add('unfollowed');
+      });
+    });
+  }
+
+  document.getElementById('searchInput').addEventListener('input', e => {
+    const q = e.target.value.toLowerCase().trim();
+    const filtered = q ? nonFollowers.filter(u => u.toLowerCase().includes(q)) : nonFollowers;
+    renderList(filtered);
+  });
+</script>
+</body>
+</html>
